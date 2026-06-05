@@ -1,40 +1,51 @@
-import "./globals.css";
-import Footer from "./components/Footer";
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import './globals.css'
+import type { Metadata } from 'next'
+import { Geist, Geist_Mono } from 'next/font/google'
+
+import Footer from './components/Footer'
+import PWARegister from './pwa-register'
+import InitIndexedDB from './components/InitIndexedDB'
 
 const geistSans = Geist({
-  subsets: ["latin"],
-});
+  subsets: ['latin'],
+})
 
 const geistMono = Geist_Mono({
-  subsets: ["latin"],
-});
+  subsets: ['latin'],
+})
 
 export const metadata: Metadata = {
-  title: "MPR & CS",
+  title: 'MPR & CS',
   description:
-    "Plateforme officielle du Ministère Pensée Renouvelée & Club des Semeurs",
-};
+    'Plateforme officielle du Ministère Pensée Renouvelée & Club des Semeurs',
+}
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
-    <html lang="fr">
+    <html lang="fr" suppressHydrationWarning>
+      <head>
+        {/* ===== PWA ===== */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#0f172a" />
+      </head>
+
       <body
         className={`${geistSans.className} ${geistMono.className} min-h-screen flex flex-col`}
       >
-        {/* CONTENU DES PAGES (les navbars viennent des layouts enfants) */}
-        <main className="flex-grow">
-          {children}
-        </main>
+        {/* ===== Initialisations techniques CLIENT ===== */}
+        <InitIndexedDB />
+        <PWARegister />
 
-        {/* FOOTER GLOBAL – visible partout */}
+        {/* ===== Contenu ===== */}
+        <main className="flex-grow">{children}</main>
+
+        {/* ===== Footer global ===== */}
         <Footer />
       </body>
     </html>
-  );
+  )
 }

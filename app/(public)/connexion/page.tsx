@@ -32,8 +32,9 @@ export default function ConnexionPage() {
   };
 
   return (
-    <div className="min-h-screen flex justify-end items-center bg-gray-100 px-6">
-      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg">
+    <section className="bg-gray-100 px-6 pt-6">
+      {/* Conteneur */}
+      <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg">
         <h1 className="text-2xl font-bold text-center text-blue-700 mb-6">
           Connexion
         </h1>
@@ -42,7 +43,7 @@ export default function ConnexionPage() {
           <input
             type="email"
             placeholder="Email"
-            className="w-full border rounded px-4 py-2"
+            className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -50,17 +51,21 @@ export default function ConnexionPage() {
           <input
             type="password"
             placeholder="Mot de passe"
-            className="w-full border rounded px-4 py-2"
+            className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          {error && <p className="text-red-600 text-sm">{error}</p>}
+          {error && (
+            <p className="text-red-600 text-sm text-center">
+              {error}
+            </p>
+          )}
 
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium"
           >
             {loading ? "Connexion..." : "Se connecter"}
           </button>
@@ -75,6 +80,6 @@ export default function ConnexionPage() {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 }

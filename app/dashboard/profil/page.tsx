@@ -4,18 +4,18 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabaseClient'
+import { openBNPDatabase } from '@/app/lib/indexeddb/bnp'
 
 type Profile = {
   id: string
   email: string | null
   prenom: string | null
   nom: string | null
-  role: string | null
   bio: string | null
   avatar_url: string | null
 }
 
-export default function ProfilPage() {
+export default function DashboardProfilPage() {
   const router = useRouter()
 
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -30,13 +30,27 @@ export default function ProfilPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  /* =========================
+   ✅ TEST BNP IndexedDB (UNE FOIS)
+   ========================= */
+useEffect(() => {
+  openBNPDatabase()
+    .then(() => {
+      console.log('📚 bnp_library IndexedDB créée avec succès')
+    })
+    .catch((err) => {
+      console.error('❌ Erreur IndexedDB BNP', err)
+    })
+}, [])
+
+  /* =========================
+     Chargement du profil
+     ========================= */
   useEffect(() => {
     const loadProfile = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: auth } = await supabase.auth.getUser()
 
-      if (!user) {
+      if (!auth.user) {
         router.replace('/connexion')
         return
       }
@@ -44,7 +58,7 @@ export default function ProfilPage() {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', auth.user.id)
         .single()
 
       if (error || !data) {
@@ -62,6 +76,9 @@ export default function ProfilPage() {
     loadProfile()
   }, [router])
 
+  /* =========================
+     Upload avatar
+     ========================= */
   const uploadAvatar = async (file: File) => {
     if (!profile) return
 
@@ -69,12 +86,15 @@ export default function ProfilPage() {
       setUploading(true)
       setError(null)
 
-      const fileExt = file.name.split('.').pop()
-      const filePath = `${profile.id}.${fileExt}`
+      const fileExt = file.name.split('.').pop() || 'png'
+      const filePath = `${profile.id}/avatar.${fileExt}`
 
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(filePath, file, { upsert: true })
+        .upload(filePath, file, {
+          upsert: true,
+          contentType: file.type,
+        })
 
       if (uploadError) throw uploadError
 
@@ -90,13 +110,17 @@ export default function ProfilPage() {
       if (updateError) throw updateError
 
       setProfile({ ...profile, avatar_url: data.publicUrl })
-    } catch {
+    } catch (err) {
+      console.error(err)
       setError('Erreur lors de l’upload de l’avatar')
     } finally {
       setUploading(false)
     }
   }
 
+  /* =========================
+     Sauvegarde infos
+     ========================= */
   const saveProfile = async () => {
     if (!profile) return
 
@@ -107,19 +131,16 @@ export default function ProfilPage() {
 
       const { error } = await supabase
         .from('profiles')
-        .update({
-          prenom,
-          nom,
-          bio,
-        })
+        .update({ prenom, nom, bio })
         .eq('id', profile.id)
 
       if (error) throw error
 
       setProfile({ ...profile, prenom, nom, bio })
       setSuccess('Profil mis à jour avec succès')
-    } catch {
-      setError('Erreur lors de la sauvegarde du profil')
+    } catch (err) {
+      console.error(err)
+      setError('Erreur lors de la sauvegarde')
     } finally {
       setSaving(false)
     }
@@ -128,17 +149,6 @@ export default function ProfilPage() {
   const logout = async () => {
     await supabase.auth.signOut()
     router.replace('/connexion')
-  }
-
-  const deleteAccount = async () => {
-    const confirmDelete = window.confirm(
-      'Cette action est irréversible. Supprimer votre compte ?'
-    )
-    if (!confirmDelete || !profile) return
-
-    await supabase.from('profiles').delete().eq('id', profile.id)
-    await supabase.auth.signOut()
-    router.replace('/')
   }
 
   if (loading) return <p className="p-6">Chargement...</p>
@@ -157,7 +167,6 @@ export default function ProfilPage() {
             alt="Avatar"
             fill
             className="object-cover"
-            sizes="96px"
           />
         </div>
 
@@ -175,63 +184,45 @@ export default function ProfilPage() {
         </label>
       </div>
 
-      {/* Infos éditables */}
+      {/* Infos */}
       <div className="space-y-3">
-        <div>
-          <label className="text-sm font-medium">Prénom</label>
-          <input
-            value={prenom}
-            onChange={(e) => setPrenom(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">Nom</label>
-          <input
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">Bio</label>
-          <textarea
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            rows={3}
-            className="w-full border rounded px-3 py-2"
-          />
-        </div>
+        <input
+          value={prenom}
+          onChange={(e) => setPrenom(e.target.value)}
+          placeholder="Prénom"
+          className="w-full border rounded px-3 py-2"
+        />
+        <input
+          value={nom}
+          onChange={(e) => setNom(e.target.value)}
+          placeholder="Nom"
+          className="w-full border rounded px-3 py-2"
+        />
+        <textarea
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          rows={3}
+          placeholder="Bio"
+          className="w-full border rounded px-3 py-2"
+        />
 
         <button
           onClick={saveProfile}
           disabled={saving}
-          className="px-4 py-2 bg-blue-600 text-white rounded disabled:opacity-50"
+          className="px-4 py-2 bg-blue-600 text-white rounded"
         >
-          {saving ? 'Enregistrement...' : 'Enregistrer le profil'}
+          {saving ? 'Enregistrement...' : 'Enregistrer'}
         </button>
 
         {success && <p className="text-green-600 text-sm">{success}</p>}
       </div>
 
-      {/* Actions */}
-      <div className="flex gap-3 pt-4">
-        <button
-          onClick={logout}
-          className="px-4 py-2 bg-gray-800 text-white rounded"
-        >
-          Déconnexion
-        </button>
-
-        <button
-          onClick={deleteAccount}
-          className="px-4 py-2 bg-red-600 text-white rounded"
-        >
-          Supprimer mon compte
-        </button>
-      </div>
+      <button
+        onClick={logout}
+        className="px-4 py-2 bg-gray-800 text-white rounded"
+      >
+        Déconnexion
+      </button>
     </div>
   )
 }

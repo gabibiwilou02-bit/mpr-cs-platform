@@ -12,11 +12,18 @@ export default function NavbarDashboard() {
 
         {/* Liens */}
         <div className="flex items-center gap-6">
-          <Link href="/faq" className="text-gray-700 hover:text-blue-700">
+          <Link
+            href="/dashboard/faq"
+            className="text-gray-700 hover:text-blue-700"
+          >
             FAQ
           </Link>
 
-          <Link href="/don" className="text-gray-700 hover:text-blue-700">
+          {/* 🔥 LIEN CORRIGÉ */}
+          <Link
+            href="/dashboard/don"
+            className="text-gray-700 hover:text-blue-700"
+          >
             Faire un don
           </Link>
 
