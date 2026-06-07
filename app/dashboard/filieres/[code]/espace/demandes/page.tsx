@@ -9,6 +9,7 @@ type Demande = {
   statut: string | null;
   created_at: string;
   user_id: string;
+  filiere_code: string;
   profiles: {
     nom: string | null;
     prenom: string | null;
@@ -18,7 +19,7 @@ type Demande = {
 
 export default function DemandesFiliere() {
   const params = useParams();
-  const filiereCode = params?.code as string;
+  const filiereCode = params.code as string;
 
   const [demandes, setDemandes] = useState<Demande[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,26 +31,24 @@ export default function DemandesFiliere() {
     const fetchDemandes = async () => {
       const { data, error } = await supabase
         .from("demandes_integration")
-        .select(
-          `
+        .select(`
           id,
           statut,
           created_at,
           user_id,
+          filiere_code,
           profiles (
             nom,
             prenom,
             sexe
           )
-        `
-        )
-        .eq("cible_type", "filiere")
-        .eq("cible_code", filiereCode)
+        `)
+        .eq("filiere_code", filiereCode)
         .order("created_at", { ascending: false });
 
       if (error) {
         console.error(error);
-        setError("Impossible de charger les demandes de la filière.");
+        setError("Impossible de charger les demandes.");
       } else {
         setDemandes(data ?? []);
       }
@@ -82,10 +81,10 @@ export default function DemandesFiliere() {
     <div className="max-w-5xl mx-auto space-y-6">
       <header>
         <h2 className="text-2xl font-semibold">
-          Demandes d’intégration — Filière
+          Demandes d’intégration – Filière
         </h2>
         <p className="text-gray-600">
-          Demandes à traiter pour cette filière.
+          Demandes à traiter pour la filière <strong>{filiereCode}</strong>
         </p>
       </header>
 
@@ -118,8 +117,7 @@ export default function DemandesFiliere() {
             >
               <div>
                 <p className="font-medium">
-                  {profile?.prenom ?? "—"}{" "}
-                  {profile?.nom ?? ""}
+                  {profile?.prenom ?? "—"} {profile?.nom ?? ""}
                 </p>
                 <p className="text-sm text-gray-600">
                   Sexe : {profile?.sexe ?? "—"} — Statut :{" "}
