@@ -1,31 +1,28 @@
-// lib/supabase/server.ts
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+// lib/supabaseClient.ts
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
-export async function createSupabaseServerClient() {
-  const cookieStore = await cookies();
+let supabase: SupabaseClient | null = null;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error("Supabase environment variables are missing");
+/**
+ * Client Supabase côté navigateur UNIQUEMENT
+ * (jamais exécuté au build ou côté serveur)
+ */
+export function getSupabaseClient(): SupabaseClient {
+  if (typeof window === "undefined") {
+    throw new Error("getSupabaseClient called on server");
   }
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            cookieStore.set(name, value, options);
-          });
-        } catch {
-          // normal en Server Components
-        }
-      },
-    },
-  });
+  if (!supabase) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !anon) {
+      throw new Error("Supabase env vars missing");
+    }
+
+    supabase = createBrowserClient(url, anon);
+  }
+
+  return supabase;
 }

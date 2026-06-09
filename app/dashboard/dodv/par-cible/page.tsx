@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 type CibleStats = {
   filiere: string;
@@ -14,6 +16,7 @@ export default function DonsParCiblePage() {
 
   useEffect(() => {
     let active = true;
+    const supabase = getSupabaseClient();
 
     const loadStats = async () => {
       const { data, error } = await supabase
@@ -23,7 +26,7 @@ export default function DonsParCiblePage() {
       if (!active) return;
 
       if (error) {
-        console.error("Erreur stats :", error);
+        console.error(error);
         setLoading(false);
         return;
       }
@@ -35,16 +38,17 @@ export default function DonsParCiblePage() {
         grouped.set(key, (grouped.get(key) ?? 0) + don.amount);
       });
 
-      const result: CibleStats[] = Array.from(grouped.entries()).map(
-        ([filiere, total]) => ({ filiere, total })
+      setStats(
+        Array.from(grouped.entries()).map(([filiere, total]) => ({
+          filiere,
+          total,
+        }))
       );
 
-      setStats(result);
       setLoading(false);
     };
 
     loadStats();
-
     return () => {
       active = false;
     };
@@ -79,12 +83,6 @@ export default function DonsParCiblePage() {
             </p>
           </div>
         ))}
-
-        {stats.length === 0 && (
-          <p className="text-gray-500">
-            Aucune donnée disponible.
-          </p>
-        )}
       </div>
     </main>
   );

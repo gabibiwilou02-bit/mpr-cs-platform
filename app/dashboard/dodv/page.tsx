@@ -1,24 +1,27 @@
-'use client'
+"use client";
+
+import { useEffect, useState } from "react";
+import { getSupabaseClient } from "@/lib/supabase/server";
+
 export const dynamic = "force-dynamic";
 
-import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabaseClient'
-
 type Resume = {
-  name: string
-  type: string
-  currency: string
-  total: number
-}
+  name: string;
+  type: string;
+  currency: string;
+  total: number;
+};
 
 export default function DODVDashboard() {
-  const [data, setData] = useState<Resume[]>([])
+  const [data, setData] = useState<Resume[]>([]);
 
   useEffect(() => {
+    const supabase = getSupabaseClient();
+
     supabase
-      .rpc('dodv_totaux_par_cible')
-      .then(({ data }) => setData(data || []))
-  }, [])
+      .rpc("dodv_totaux_par_cible")
+      .then(({ data }) => setData(data || []));
+  }, []);
 
   return (
     <section className="p-6 space-y-6">
@@ -49,5 +52,5 @@ export default function DODVDashboard() {
         </tbody>
       </table>
     </section>
-  )
+  );
 }

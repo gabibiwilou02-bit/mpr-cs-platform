@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { getSupabaseClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 type Donation = {
   id: string;
@@ -18,29 +20,29 @@ export default function ExportDonationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
+    let active = true;
+    const supabase = getSupabaseClient();
 
-    const loadDonations = async () => {
+    const load = async () => {
       const { data, error } = await supabase
         .from("donations")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!isMounted) return;
+      if (!active) return;
 
-      if (error) {
-        console.error("Erreur chargement dons :", error);
+      if (!error) {
+        setDonations((data ?? []) as Donation[]);
       } else {
-        setDonations(data as Donation[]);
+        console.error(error);
       }
 
       setLoading(false);
     };
 
-    loadDonations();
-
+    load();
     return () => {
-      isMounted = false;
+      active = false;
     };
   }, []);
 
@@ -60,41 +62,27 @@ export default function ExportDonationsPage() {
 
       <div className="overflow-x-auto bg-white shadow rounded">
         <table className="min-w-full text-sm">
-          <thead className="bg-gray-100 text-gray-700">
+          <thead className="bg-gray-100">
             <tr>
-              <th className="px-4 py-2 text-left">Donateur</th>
-              <th className="px-4 py-2">Montant</th>
-              <th className="px-4 py-2">Département</th>
-              <th className="px-4 py-2">Filière</th>
-              <th className="px-4 py-2">Date</th>
+              <th>Donateur</th>
+              <th>Montant</th>
+              <th>Département</th>
+              <th>Filière</th>
+              <th>Date</th>
             </tr>
           </thead>
           <tbody>
             {donations.map((don) => (
               <tr key={don.id} className="border-t">
-                <td className="px-4 py-2">{don.donor_name}</td>
-                <td className="px-4 py-2 text-center">
-                  {don.amount} {don.currency}
-                </td>
-                <td className="px-4 py-2 text-center">
-                  {don.department}
-                </td>
-                <td className="px-4 py-2 text-center">
-                  {don.filiere ?? "—"}
-                </td>
-                <td className="px-4 py-2 text-center">
+                <td>{don.donor_name}</td>
+                <td>{don.amount} {don.currency}</td>
+                <td>{don.department}</td>
+                <td>{don.filiere ?? "—"}</td>
+                <td>
                   {new Date(don.created_at).toLocaleDateString()}
                 </td>
               </tr>
             ))}
-
-            {donations.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-500">
-                  Aucun don enregistré.
-                </td>
-              </tr>
-            )}
           </tbody>
         </table>
       </div>
