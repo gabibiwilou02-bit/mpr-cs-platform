@@ -1,9 +1,11 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
 import type { Demande, StatutDemande } from "@/types/demandes";
-import Link from "next/link";
 
 export default function AdminDemandesPage() {
   const [demandes, setDemandes] = useState<Demande[]>([]);
@@ -11,6 +13,8 @@ export default function AdminDemandesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
     const fetchDemandes = async () => {
       setLoading(true);
       setError(null);
@@ -28,6 +32,8 @@ export default function AdminDemandesPage() {
         `)
         .order("created_at", { ascending: false });
 
+      if (!active) return;
+
       if (error) {
         console.error(error);
         setError("Impossible de charger les demandes.");
@@ -39,6 +45,10 @@ export default function AdminDemandesPage() {
     };
 
     fetchDemandes();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const updateStatut = async (
@@ -51,7 +61,7 @@ export default function AdminDemandesPage() {
 
     if (!user) return;
 
-    // 1️⃣ Update statut
+    // 1️⃣ Mise à jour du statut
     const { error } = await supabase
       .from("demandes_integration")
       .update({ statut })
@@ -79,7 +89,7 @@ export default function AdminDemandesPage() {
           : "Votre demande d’intégration a été refusée.",
     });
 
-    // 4️⃣ Mise à jour optimiste
+    // 4️⃣ Mise à jour locale optimiste
     setDemandes((prev) =>
       prev.map((d) =>
         d.id === demande.id ? { ...d, statut } : d
@@ -90,7 +100,9 @@ export default function AdminDemandesPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       <header>
-        <h1 className="text-3xl font-bold">Demandes d’intégration</h1>
+        <h1 className="text-3xl font-bold">
+          Demandes d’intégration
+        </h1>
         <p className="text-gray-600">
           Gestion des demandes par le comité et le DODV
         </p>
@@ -101,18 +113,19 @@ export default function AdminDemandesPage() {
 
       <div className="space-y-4">
         {demandes.map((demande) => {
-          const profile = demande.profiles[0];
-          const departement = demande.departements[0];
-          const filiere = demande.filieres[0];
+          const profile = demande.profiles?.[0];
+          const departement = demande.departements?.[0];
+          const filiere = demande.filieres?.[0];
 
           return (
             <div
               key={demande.id}
-              className="p-4 bg-white rounded shadow flex justify-between"
+              className="p-4 bg-white rounded shadow flex justify-between gap-4"
             >
               <div>
                 <p className="font-medium">
-                  {profile?.prenom ?? "—"} {profile?.nom ?? ""}
+                  {profile?.prenom ?? "—"}{" "}
+                  {profile?.nom ?? ""}
                 </p>
 
                 <p className="text-sm text-gray-600">
@@ -129,7 +142,7 @@ export default function AdminDemandesPage() {
                 </p>
               </div>
 
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-2 min-w-[140px]">
                 {demande.statut === "en attente" && (
                   <>
                     <button
@@ -162,6 +175,12 @@ export default function AdminDemandesPage() {
             </div>
           );
         })}
+
+        {!loading && demandes.length === 0 && (
+          <p className="text-gray-500">
+            Aucune demande enregistrée.
+          </p>
+        )}
       </div>
     </div>
   );

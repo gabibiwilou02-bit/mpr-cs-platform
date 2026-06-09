@@ -1,9 +1,9 @@
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
-export const dynamic = "force-dynamic"; // ⬅️ empêche le prerender
 
 type Donation = {
   id: string;
