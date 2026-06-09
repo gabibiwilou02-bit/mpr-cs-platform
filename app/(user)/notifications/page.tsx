@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
 
 type Notification = {
   id: string;
@@ -16,47 +15,65 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+
     const loadAndMarkAsRead = async () => {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+      try {
+        // ✅ Import dynamique (ANTI prerender crash)
+        const { supabase } = await import("@/lib/supabaseClient");
 
-      if (userError || !user) {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser();
+
+        if (!mounted || userError || !user) {
+          setLoading(false);
+          return;
+        }
+
+        // 1️⃣ Charger les notifications
+        const { data, error } = await supabase
+          .from("notifications")
+          .select("id, titre, message, lu, created_at")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (!mounted) return;
+
+        if (error) {
+          console.error("Erreur chargement notifications:", error);
+          setLoading(false);
+          return;
+        }
+
+        setNotifications(data ?? []);
         setLoading(false);
-        return;
+
+        // 2️⃣ Marquer comme lues (DB)
+        await supabase
+          .from("notifications")
+          .update({ lu: true })
+          .eq("user_id", user.id)
+          .eq("lu", false);
+
+        // 3️⃣ Mise à jour locale instantanée
+        setNotifications((prev) =>
+          prev.map((n) => ({ ...n, lu: true }))
+        );
+      } catch (err) {
+        console.error("Erreur notifications:", err);
+        if (mounted) {
+          setLoading(false);
+        }
       }
-
-      // 1️⃣ Charger les notifications
-      const { data, error } = await supabase
-        .from("notifications")
-        .select("id, titre, message, lu, created_at")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Erreur chargement notifications:", error);
-        setLoading(false);
-        return;
-      }
-
-      setNotifications(data ?? []);
-      setLoading(false);
-
-      // 2️⃣ Marquer comme lues (DB)
-      await supabase
-        .from("notifications")
-        .update({ lu: true })
-        .eq("user_id", user.id)
-        .eq("lu", false);
-
-      // 3️⃣ Mettre à jour l’état local (UX instantanée)
-      setNotifications((prev) =>
-        prev.map((n) => ({ ...n, lu: true }))
-      );
     };
 
     loadAndMarkAsRead();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (loading) {
