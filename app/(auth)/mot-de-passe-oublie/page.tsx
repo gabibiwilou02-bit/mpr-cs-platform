@@ -3,8 +3,8 @@
 export const dynamic = "force-dynamic";
 
 import { useState } from "react";
-import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function MotDePasseOubliePage() {
   const [email, setEmail] = useState("");
@@ -17,25 +17,29 @@ export default function MotDePasseOubliePage() {
     setMessage(null);
     setLoading(true);
 
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    try {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+      );
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
-    setLoading(false);
+      if (error) {
+        setError("Impossible d’envoyer l’email. Vérifiez l’adresse.");
+        return;
+      }
 
-    if (error) {
-      setError("Impossible d’envoyer l’email. Vérifiez l’adresse.");
-      return;
+      setMessage(
+        "Un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception."
+      );
+    } catch {
+      setError("Une erreur inattendue est survenue.");
+    } finally {
+      setLoading(false);
     }
-
-    setMessage(
-      "Un email de réinitialisation a été envoyé. Vérifiez votre boîte de réception."
-    );
   };
 
   return (
