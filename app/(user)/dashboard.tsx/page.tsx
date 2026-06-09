@@ -1,65 +1,63 @@
-'use client'
+"use client";
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from "react";
 import {
   getOfflineBooks,
   openOfflineBook,
-} from '@/lib/indexeddb/bnp-actions'
-import type { BNPBook } from '@/lib/indexeddb/bnp-actions'
+} from "@/lib/indexeddb/bnp-actions";
+import type { BNPBook } from "@/lib/indexeddb/bnp-actions";
 
 export default function UserDashboardPage() {
-  const [offline, setOffline] = useState(false)
-  const [books, setBooks] = useState<BNPBook[]>([])
+  const [offline, setOffline] = useState(false);
+  const [books, setBooks] = useState<BNPBook[]>([]);
 
   /* ===========================
      ONLINE / OFFLINE STATUS
   ============================ */
   useEffect(() => {
     const updateStatus = () => {
-      setOffline(!navigator.onLine)
-    }
+      setOffline(!navigator.onLine);
+    };
 
-    updateStatus()
+    updateStatus();
 
-    window.addEventListener('online', updateStatus)
-    window.addEventListener('offline', updateStatus)
+    window.addEventListener("online", updateStatus);
+    window.addEventListener("offline", updateStatus);
 
     return () => {
-      window.removeEventListener('online', updateStatus)
-      window.removeEventListener('offline', updateStatus)
-    }
-  }, [])
+      window.removeEventListener("online", updateStatus);
+      window.removeEventListener("offline", updateStatus);
+    };
+  }, []);
 
   /* ===========================
      CHARGEMENT DES LIVRES OFFLINE
   ============================ */
   useEffect(() => {
-    let cancelled = false
+    let cancelled = false;
 
-    ;(async () => {
+    (async () => {
       try {
-        const data = await getOfflineBooks()
+        const data = await getOfflineBooks();
         if (!cancelled) {
-          setBooks(data)
+          setBooks(data);
         }
       } catch (e) {
-        console.error('Erreur chargement livres offline', e)
+        console.error("Erreur chargement livres offline", e);
       }
-    })()
+    })();
 
     return () => {
-      cancelled = true
-    }
-  }, [])
+      cancelled = true;
+    };
+  }, []);
 
   /* ===========================
      UI
   ============================ */
   return (
     <section className="p-6 space-y-4">
-      <h1 className="text-xl font-bold">
-        Espace personnel
-      </h1>
+      <h1 className="text-xl font-bold">Espace personnel</h1>
 
       {offline && (
         <p className="text-sm text-orange-600">
@@ -79,28 +77,28 @@ export default function UserDashboardPage() {
               className="border rounded p-3 space-y-1"
             >
               <strong>{book.title}</strong>
+
               <div className="text-sm text-gray-600">
                 {book.author}
               </div>
 
               <div className="text-xs text-gray-500">
-                {book.type === 'purchased'
-                  ? 'Accès permanent'
-                  : 'Livre gratuit réservé'}
+                {book.type === "purchased"
+                  ? "Accès permanent"
+                  : "Livre gratuit réservé"}
               </div>
 
               <button
                 className="text-sm text-blue-600 underline"
                 onClick={async () => {
                   try {
-                    const url = await openOfflineBook(book.id)
-                    window.open(url, '_blank', 'noopener')
-                  } catch (e) {{
-  console.log("Erreur dashboard:", e)
-}
+                    const url = await openOfflineBook(book.id);
+                    window.open(url, "_blank", "noopener");
+                  } catch (e) {
+                    console.error("Erreur dashboard:", e);
                     alert(
-                      'Impossible d’ouvrir le livre hors ligne'
-                    )
+                      "Impossible d’ouvrir le livre hors ligne"
+                    );
                   }
                 }}
               >
@@ -111,5 +109,5 @@ export default function UserDashboardPage() {
         </ul>
       )}
     </section>
-  )
+  );
 }
