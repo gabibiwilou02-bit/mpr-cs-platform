@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function InscriptionPage() {
   const [nom, setNom] = useState("");
@@ -9,15 +9,24 @@ export default function InscriptionPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage(null);
 
     if (password !== confirmPassword) {
       setMessage("Les mots de passe ne correspondent pas.");
       return;
     }
+
+    setLoading(true);
+
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     const { error } = await supabase.auth.signUp({
       email,
@@ -30,13 +39,16 @@ export default function InscriptionPage() {
       },
     });
 
+    setLoading(false);
+
     if (error) {
       setMessage(error.message);
-    } else {
-      setMessage(
-        "Inscription réussie. Vérifiez votre email pour confirmer votre compte."
-      );
+      return;
     }
+
+    setMessage(
+      "Inscription réussie. Vérifiez votre email pour confirmer votre compte."
+    );
   };
 
   return (
@@ -51,14 +63,13 @@ export default function InscriptionPage() {
           du Ministère Pensée Renouvelée & Club des Semeurs (MPR & CS).
         </p>
 
-        {/* FORMULAIRE */}
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
             type="text"
             placeholder="Nom"
             value={nom}
             onChange={(e) => setNom(e.target.value)}
-            className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="w-full border rounded px-4 py-2 focus:ring-2 focus:ring-blue-600"
             required
           />
 
@@ -67,7 +78,7 @@ export default function InscriptionPage() {
             placeholder="Prénom"
             value={prenom}
             onChange={(e) => setPrenom(e.target.value)}
-            className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="w-full border rounded px-4 py-2 focus:ring-2 focus:ring-blue-600"
             required
           />
 
@@ -76,7 +87,7 @@ export default function InscriptionPage() {
             placeholder="Adresse email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="w-full border rounded px-4 py-2 focus:ring-2 focus:ring-blue-600"
             required
           />
 
@@ -85,7 +96,7 @@ export default function InscriptionPage() {
             placeholder="Mot de passe"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="w-full border rounded px-4 py-2 focus:ring-2 focus:ring-blue-600"
             required
           />
 
@@ -94,7 +105,7 @@ export default function InscriptionPage() {
             placeholder="Confirmer le mot de passe"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="w-full border rounded px-4 py-2 focus:ring-2 focus:ring-blue-600"
             required
           />
 
@@ -103,16 +114,17 @@ export default function InscriptionPage() {
             comme membre d’un département.
             <br />
             <strong>
-              Toute intégration à un département se fait par une demande formelle
-              depuis la page du département concerné.
+              Toute intégration se fait par une demande formelle depuis la page
+              du département concerné.
             </strong>
           </p>
 
           <button
             type="submit"
-            className="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800 transition"
+            disabled={loading}
+            className="w-full bg-blue-700 text-white py-2 rounded hover:bg-blue-800 transition disabled:opacity-50"
           >
-            S’inscrire
+            {loading ? "Inscription..." : "S’inscrire"}
           </button>
         </form>
 
