@@ -1,4 +1,4 @@
-import { getSupabaseClient } from "@/lib/supabase/server";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 type PageProps = {
   params: {
@@ -7,9 +7,7 @@ type PageProps = {
 };
 
 export default async function Page({ params }: PageProps) {
-  const { slug } = params;
-
-  const supabase = getSupabaseClient();
+  const supabase = await getSupabaseServerClient(); // ✅ FIX CRITIQUE
 
   const { data: contenus, error } = await supabase
     .from("contenus")
@@ -17,18 +15,11 @@ export default async function Page({ params }: PageProps) {
       id,
       titre,
       created_at,
-      auteur:profiles (
-        prenom,
-        nom
-      ),
-      departement:departements (
-        nom
-      ),
-      role:comite_roles (
-        libelle
-      )
+      auteur:profiles ( prenom, nom ),
+      departement:departements ( nom ),
+      role:comite_roles ( libelle )
     `)
-    .eq("departement_slug", slug)
+    .eq("departement_slug", params.slug)
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -42,7 +33,9 @@ export default async function Page({ params }: PageProps) {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-xl font-bold">Contenus du département</h1>
+      <h1 className="text-xl font-bold">
+        Contenus du département
+      </h1>
 
       {(!contenus || contenus.length === 0) && (
         <p>Aucun contenu disponible</p>
@@ -66,10 +59,6 @@ export default async function Page({ params }: PageProps) {
 
               <p className="text-sm text-gray-600">
                 Département : {departement?.nom ?? "—"}
-              </p>
-
-              <p className="text-xs text-gray-400">
-                {new Date(contenu.created_at).toLocaleDateString()}
               </p>
             </li>
           );
