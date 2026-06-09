@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
 import jsPDF from "jspdf";
 import type { DemandeUser } from "@/types/demandes";
 
@@ -36,62 +35,52 @@ export default function MesDemandesPage() {
 
   /* ===== FETCH ===== */
   useEffect(() => {
+    let mounted = true;
+
     const fetchDemandes = async () => {
-      setLoading(true);
-      setError(null);
+      try {
+        setLoading(true);
+        setError(null);
 
-      const { data, error } = await supabase
-        .from("demandes_integration")
-        .select(`
-          id,
-          statut,
-          created_at,
-          departements ( nom ),
-          filieres ( nom )
-        `)
-        .order("created_at", { ascending: false });
+        const { supabase } = await import("@/lib/supabaseClient");
 
-      if (error) {
-        console.error(error);
-        setError("Impossible de charger vos demandes.");
-      } else {
-        setDemandes(data ?? []);
+        const { data, error } = await supabase
+          .from("demandes_integration")
+          .select(`
+            id,
+            statut,
+            created_at,
+            departements ( nom ),
+            filieres ( nom )
+          `)
+          .order("created_at", { ascending: false });
+
+        if (!mounted) return;
+
+        if (error) {
+          console.error(error);
+          setError("Impossible de charger vos demandes.");
+        } else {
+          setDemandes(data ?? []);
+        }
+      } catch (err) {
+        console.error(err);
+        if (mounted) {
+          setError("Erreur de connexion.");
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-
-      setLoading(false);
     };
 
     fetchDemandes();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
-
-  /* ===== NOTIFICATION SI ACCEPTÉE ===== */
-  useEffect(() => {
-    const accepted = demandes.find(d => d.statut === "accepte");
-    if (accepted) {
-      alert("🎉 Votre demande a été acceptée !");
-    }
-  }, [demandes]);
-
-  /* ===== SUPPRESSION AUTO SI REFUSÉE ===== */
-  useEffect(() => {
-    const refused = demandes.filter(d => d.statut === "refuse");
-    if (refused.length === 0) return;
-
-    const timer = setTimeout(async () => {
-      const ids = refused.map(d => d.id);
-
-      await supabase
-        .from("demandes_integration")
-        .delete()
-        .in("id", ids);
-
-      setDemandes(prev =>
-        prev.filter(d => d.statut !== "refuse")
-      );
-    }, 5000);
-
-    return () => clearTimeout(timer);
-  }, [demandes]);
 
   /* ===== PDF ===== */
   const generatePDF = (demande: DemandeUser) => {
