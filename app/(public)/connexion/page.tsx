@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function ConnexionPage() {
   const router = useRouter();
@@ -15,6 +15,11 @@ export default function ConnexionPage() {
   const handleLogin = async () => {
     setError(null);
     setLoading(true);
+
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
@@ -32,9 +37,8 @@ export default function ConnexionPage() {
   };
 
   return (
-    <section className="bg-gray-100 px-6 pt-6">
-      {/* Conteneur */}
-      <div className="max-w-md mx-auto bg-white p-8 rounded-xl shadow-lg">
+    <section className="bg-gray-100 px-6 pt-6 min-h-screen flex items-center justify-center">
+      <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
         <h1 className="text-2xl font-bold text-center text-blue-700 mb-6">
           Connexion
         </h1>
@@ -57,22 +61,20 @@ export default function ConnexionPage() {
           />
 
           {error && (
-            <p className="text-red-600 text-sm text-center">
-              {error}
-            </p>
+            <p className="text-red-600 text-sm text-center">{error}</p>
           )}
 
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium disabled:opacity-50"
           >
             {loading ? "Connexion..." : "Se connecter"}
           </button>
 
           <div className="text-center">
             <a
-              href="/mot-de-passe"
+              href="/mot-de-passe-oublie"
               className="text-sm text-blue-600 underline"
             >
               Mot de passe oublié ?
