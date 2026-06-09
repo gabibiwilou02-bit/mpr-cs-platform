@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
+export const dynamic = "force-dynamic"; // ⬅️ empêche le prerender
+
 type Donation = {
   id: string;
   donor_name: string;
@@ -20,7 +22,7 @@ export default function DODVDonsPage() {
   useEffect(() => {
     let active = true;
 
-    const load = async () => {
+    async function load() {
       const { data, error } = await supabase
         .from("donations")
         .select("*")
@@ -31,14 +33,13 @@ export default function DODVDonsPage() {
       if (error) {
         console.error("Erreur chargement dons :", error);
       } else {
-        setDonations(data as Donation[]);
+        setDonations((data ?? []) as Donation[]);
       }
 
       setLoading(false);
-    };
+    }
 
     load();
-
     return () => {
       active = false;
     };
@@ -69,7 +70,6 @@ export default function DODVDonsPage() {
               <th className="px-4 py-2 text-center">Date</th>
             </tr>
           </thead>
-
           <tbody>
             {donations.map((don) => (
               <tr key={don.id} className="border-t">
