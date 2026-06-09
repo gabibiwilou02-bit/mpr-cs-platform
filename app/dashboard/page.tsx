@@ -12,37 +12,31 @@ export default function DashboardPage() {
     let mounted = true;
     let unsubscribe: (() => void) | null = null;
 
-    const checkAuth = async () => {
-      try {
-        // ✅ Import dynamique (anti-prerender crash)
-        const { supabase } = await import("@/lib/supabaseClient");
+    const initAuth = async () => {
+      // ⚠️ Import dynamique OBLIGATOIRE
+      const { supabase } = await import("@/lib/supabaseClient");
 
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-        if (!user) {
-          router.replace("/connexion");
-          return;
-        }
-
-        if (mounted) setLoading(false);
-
-        // Écoute des changements d’auth
-        const { data } = supabase.auth.onAuthStateChange(
-          (_event, session) => {
-            if (!session) router.replace("/connexion");
-          }
-        );
-
-        unsubscribe = data.subscription.unsubscribe;
-      } catch (err) {
-        console.error("Erreur dashboard auth:", err);
+      if (!user) {
         router.replace("/connexion");
+        return;
       }
+
+      if (mounted) setLoading(false);
+
+      const { data } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          if (!session) router.replace("/connexion");
+        }
+      );
+
+      unsubscribe = data.subscription.unsubscribe;
     };
 
-    checkAuth();
+    initAuth();
 
     return () => {
       mounted = false;
@@ -70,9 +64,7 @@ export default function DashboardPage() {
         {/* DÉPARTEMENTS & FILIÈRES */}
         <section className="grid md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-2">
-              Départements
-            </h2>
+            <h2 className="text-xl font-semibold mb-2">Départements</h2>
             <p className="text-gray-600 mb-4">
               Accédez aux espaces des différents départements du MPR & CS.
             </p>
@@ -85,9 +77,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-2">
-              Filières
-            </h2>
+            <h2 className="text-xl font-semibold mb-2">Filières</h2>
             <p className="text-gray-600 mb-4">
               Consultez les filières et leurs productions.
             </p>
@@ -102,9 +92,7 @@ export default function DashboardPage() {
 
         {/* ENGAGEMENT */}
         <section className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">
-            Engagement
-          </h2>
+          <h2 className="text-xl font-semibold mb-2">Engagement</h2>
           <p className="text-gray-600 mb-4">
             Demandez votre intégration dans un département ou une filière
             (selon disponibilité et validation).
