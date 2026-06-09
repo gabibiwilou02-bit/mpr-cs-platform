@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSupabaseClient } from "@/lib/supabase/server";
 
 type PageProps = {
   params: {
@@ -9,7 +9,7 @@ type PageProps = {
 export default async function Page({ params }: PageProps) {
   const { slug } = params;
 
-  const supabase = await createSupabaseServerClient();
+  const supabase = getSupabaseClient();
 
   const { data: contenus, error } = await supabase
     .from("contenus")
