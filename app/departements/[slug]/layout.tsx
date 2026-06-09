@@ -2,15 +2,20 @@
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
+import type { ReactNode } from 'react'
 
 export default async function DepartementLayout({
   children,
   params,
 }: {
-  children: React.ReactNode
-  params: { slug: string }
+  children: ReactNode
+  params: Promise<{ slug: string }>
 }) {
-  const cookieStore = await cookies() // ✅ OBLIGATOIRE
+  // ✅ params est une Promise
+  const { slug } = await params
+
+  // ✅ cookies() est AUSSI une Promise dans ton environnement
+  const cookieStore = await cookies()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,7 +37,6 @@ export default async function DepartementLayout({
     redirect('/connexion')
   }
 
-  // 🔍 Récupération du rôle et du département
   const { data: profile } = await supabase
     .from('profiles')
     .select('role, departement_slug')
@@ -45,22 +49,13 @@ export default async function DepartementLayout({
 
   const { role, departement_slug } = profile
 
-  /**
-   * RÈGLES :
-   * - admin : accès total
-   * - comité : accès à TOUS les départements (lecture)
-   * - membre : uniquement SON département
-   * - utilisateur : accès refusé
-   */
-
   if (role === 'utilisateur') {
     redirect('/acces-refuse')
   }
 
-  if (role === 'membre' && departement_slug !== params.slug) {
+  if (role === 'membre' && departement_slug !== slug) {
     redirect('/acces-refuse')
   }
 
-  // comité & admin passent
   return <>{children}</>
 }
