@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -11,31 +10,43 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let mounted = true;
+    let unsubscribe: (() => void) | null = null;
 
     const checkAuth = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      try {
+        // ✅ Import dynamique (anti-prerender crash)
+        const { supabase } = await import("@/lib/supabaseClient");
 
-      if (!user) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          router.replace("/connexion");
+          return;
+        }
+
+        if (mounted) setLoading(false);
+
+        // Écoute des changements d’auth
+        const { data } = supabase.auth.onAuthStateChange(
+          (_event, session) => {
+            if (!session) router.replace("/connexion");
+          }
+        );
+
+        unsubscribe = data.subscription.unsubscribe;
+      } catch (err) {
+        console.error("Erreur dashboard auth:", err);
         router.replace("/connexion");
-        return;
       }
-
-      if (mounted) setLoading(false);
     };
 
     checkAuth();
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) router.replace("/connexion");
-    });
-
     return () => {
       mounted = false;
-      subscription.unsubscribe();
+      if (unsubscribe) unsubscribe();
     };
   }, [router]);
 
@@ -56,7 +67,7 @@ export default function DashboardPage() {
           Bienvenue dans votre espace personnel
         </h1>
 
-        {/* DEPARTEMENTS & FILIERES */}
+        {/* DÉPARTEMENTS & FILIÈRES */}
         <section className="grid md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-2">
