@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { createBrowserClient } from "@supabase/ssr";
 import Link from "next/link";
 
 export default function MotDePasseOubliePage() {
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabase = useMemo(() => {
+    return createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+  }, []);
 
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -16,12 +18,17 @@ export default function MotDePasseOubliePage() {
   const [loading, setLoading] = useState(false);
 
   const handleReset = async () => {
+    if (!email) {
+      setError("Veuillez entrer une adresse email valide.");
+      return;
+    }
+
     setError(null);
     setMessage(null);
     setLoading(true);
 
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${location.origin}/reset-password`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
     setLoading(false);
@@ -49,6 +56,7 @@ export default function MotDePasseOubliePage() {
 
         <input
           type="email"
+          required
           placeholder="exemple@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
