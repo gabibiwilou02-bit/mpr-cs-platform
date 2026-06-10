@@ -9,80 +9,137 @@ export default function ConnexionPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const getSupabase = () => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!url || !key) {
+      throw new Error("Configuration Supabase manquante.");
+    }
+
+    return createBrowserClient(url, key);
+  };
 
   const handleLogin = async () => {
     setError(null);
+    setMessage(null);
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const supabase = getSupabase();
 
-    if (error) {
+      const { error: authError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+
+      // ✅ PAS BESOIN DE getSession ici
+      router.replace("/dashboard");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
       setLoading(false);
-      setError(error.message);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setError(null);
+    setMessage(null);
+
+    if (!email) {
+      setError("Veuillez entrer votre adresse email.");
       return;
     }
 
-    // ✅ attendre que la session soit bien établie
-    const { data } = await supabase.auth.getSession();
+    try {
+      const supabase = getSupabase();
 
-    setLoading(false);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
 
-    if (!data.session) {
-      setError("Connexion non établie. Veuillez réessayer.");
-      return;
+      if (error) {
+        setError(error.message);
+        return;
+      }
+
+      setMessage(
+        "Un email de réinitialisation du mot de passe a été envoyé."
+      );
+    } catch (err) {
+      setError((err as Error).message);
     }
-
-    router.replace("/dashboard");
   };
 
   return (
     <section className="bg-gray-100 px-6 pt-6 min-h-screen flex items-center justify-center">
       <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
-
         <h1 className="text-2xl font-bold text-center text-blue-700 mb-6">
           Connexion
         </h1>
 
         <div className="space-y-4">
-
           <input
             type="email"
             placeholder="Email"
-            className="w-full border rounded px-4 py-2 focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded px-4 py-2"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
 
-          <input
-            type="password"
-            placeholder="Mot de passe"
-            className="w-full border rounded px-4 py-2 focus:ring-2 focus:ring-blue-500"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Mot de passe"
+              className="w-full border rounded px-4 py-2 pr-10"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-2.5 text-gray-500"
+            >
+              {showPassword ? "🙈" : "👁️"}
+            </button>
+          </div>
+
+          <div className="text-right">
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-sm text-blue-600 hover:underline"
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
 
           {error && (
             <p className="text-red-600 text-sm text-center">{error}</p>
           )}
 
+          {message && (
+            <p className="text-green-600 text-sm text-center">{message}</p>
+          )}
+
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition font-medium disabled:opacity-50"
+            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? "Connexion..." : "Se connecter"}
           </button>
-
         </div>
       </div>
     </section>

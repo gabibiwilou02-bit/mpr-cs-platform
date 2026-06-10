@@ -3,19 +3,21 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
+
     let unsubscribe: (() => void) | null = null;
 
-    const initAuth = async () => {
-      // ⚠️ Import dynamique OBLIGATOIRE
-      const { supabase } = await import("@/lib/supabaseClient");
-
+    const init = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -25,7 +27,7 @@ export default function DashboardPage() {
         return;
       }
 
-      if (mounted) setLoading(false);
+      setLoading(false);
 
       const { data } = supabase.auth.onAuthStateChange(
         (_event, session) => {
@@ -36,10 +38,9 @@ export default function DashboardPage() {
       unsubscribe = data.subscription.unsubscribe;
     };
 
-    initAuth();
+    init();
 
     return () => {
-      mounted = false;
       if (unsubscribe) unsubscribe();
     };
   }, [router]);
@@ -47,9 +48,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <main className="min-h-screen flex items-center justify-center bg-gray-100">
-        <p className="text-gray-600 text-lg">
-          Chargement de votre espace personnel…
-        </p>
+        <p>Chargement de votre espace personnel…</p>
       </main>
     );
   }
@@ -61,16 +60,12 @@ export default function DashboardPage() {
           Bienvenue dans votre espace personnel
         </h1>
 
-        {/* DÉPARTEMENTS & FILIÈRES */}
         <section className="grid md:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-2">Départements</h2>
-            <p className="text-gray-600 mb-4">
-              Accédez aux espaces des différents départements du MPR & CS.
-            </p>
             <Link
               href="/dashboard/departements"
-              className="text-blue-600 underline hover:text-blue-800"
+              className="text-blue-600 underline"
             >
               Voir les départements
             </Link>
@@ -78,32 +73,13 @@ export default function DashboardPage() {
 
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-2">Filières</h2>
-            <p className="text-gray-600 mb-4">
-              Consultez les filières et leurs productions.
-            </p>
             <Link
               href="/dashboard/filieres"
-              className="text-blue-600 underline hover:text-blue-800"
+              className="text-blue-600 underline"
             >
               Voir les filières
             </Link>
           </div>
-        </section>
-
-        {/* ENGAGEMENT */}
-        <section className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-xl font-semibold mb-2">Engagement</h2>
-          <p className="text-gray-600 mb-4">
-            Demandez votre intégration dans un département ou une filière
-            (selon disponibilité et validation).
-          </p>
-
-          <Link
-            href="/demande-integration"
-            className="inline-block bg-green-600 text-white px-5 py-2 rounded hover:bg-green-700 transition"
-          >
-            Demande d’intégration
-          </Link>
         </section>
       </div>
     </main>
