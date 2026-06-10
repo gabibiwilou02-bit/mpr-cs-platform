@@ -12,24 +12,33 @@ export default function ConnexionPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
   const handleLogin = async () => {
     setError(null);
     setLoading(true);
-
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
+    if (error) {
+      setLoading(false);
+      setError(error.message);
+      return;
+    }
+
+    // ✅ attendre que la session soit bien établie
+    const { data } = await supabase.auth.getSession();
+
     setLoading(false);
 
-    if (error) {
-      setError(error.message);
+    if (!data.session) {
+      setError("Connexion non établie. Veuillez réessayer.");
       return;
     }
 
@@ -39,15 +48,17 @@ export default function ConnexionPage() {
   return (
     <section className="bg-gray-100 px-6 pt-6 min-h-screen flex items-center justify-center">
       <div className="max-w-md w-full bg-white p-8 rounded-xl shadow-lg">
+
         <h1 className="text-2xl font-bold text-center text-blue-700 mb-6">
           Connexion
         </h1>
 
         <div className="space-y-4">
+
           <input
             type="email"
             placeholder="Email"
-            className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded px-4 py-2 focus:ring-2 focus:ring-blue-500"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -55,7 +66,7 @@ export default function ConnexionPage() {
           <input
             type="password"
             placeholder="Mot de passe"
-            className="w-full border rounded px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border rounded px-4 py-2 focus:ring-2 focus:ring-blue-500"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -72,14 +83,6 @@ export default function ConnexionPage() {
             {loading ? "Connexion..." : "Se connecter"}
           </button>
 
-          <div className="text-center">
-            <a
-              href="/mot-de-passe-oublie"
-              className="text-sm text-blue-600 underline"
-            >
-              Mot de passe oublié ?
-            </a>
-          </div>
         </div>
       </div>
     </section>

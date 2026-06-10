@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getSupabaseClient } from "@/lib/supabase/server";
+import { getSupabaseClient } from "@/lib/supabase/client";
 import type { Demande, StatutDemande } from "@/types/demandes";
 
 export const dynamic = "force-dynamic";
@@ -52,14 +52,10 @@ export default function AdminDemandesPage() {
     statut: Exclude<StatutDemande, "en attente" | null>
   ) => {
     const supabase = getSupabaseClient();
-
     const { data } = await supabase.auth.getUser();
     if (!data.user) return;
 
-    await supabase
-      .from("demandes_integration")
-      .update({ statut })
-      .eq("id", demande.id);
+    await supabase.from("demandes_integration").update({ statut }).eq("id", demande.id);
 
     await supabase.from("audit_demandes").insert({
       demande_id: demande.id,
@@ -77,9 +73,7 @@ export default function AdminDemandesPage() {
     });
 
     setDemandes((prev) =>
-      prev.map((d) =>
-        d.id === demande.id ? { ...d, statut } : d
-      )
+      prev.map((d) => (d.id === demande.id ? { ...d, statut } : d))
     );
   };
 
@@ -106,12 +100,8 @@ export default function AdminDemandesPage() {
 
             {demande.statut === "en attente" && (
               <div className="mt-2 flex gap-2">
-                <button onClick={() => updateStatut(demande, "accepte")}>
-                  Accepter
-                </button>
-                <button onClick={() => updateStatut(demande, "refuse")}>
-                  Refuser
-                </button>
+                <button onClick={() => updateStatut(demande, "accepte")}>Accepter</button>
+                <button onClick={() => updateStatut(demande, "refuse")}>Refuser</button>
               </div>
             )}
 
